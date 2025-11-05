@@ -5,14 +5,17 @@ from typing import Iterable
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
+from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
+from django.contrib.auth import views as auth_views
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.timezone import now
 from django.http import StreamingHttpResponse
+from django.views.decorators.csrf import csrf_exempt
 
 from .forms import TaskForm, HRFilterForm
 from .models import Intern, Task, TaskStatus
@@ -37,6 +40,21 @@ def dashboard_redirect(request: HttpRequest) -> HttpResponse:
 		return redirect("login")
 
 
+# CSRF-exempt simple login view
+@csrf_exempt
+def simple_login(request: HttpRequest) -> HttpResponse:
+	if request.method == "POST":
+		username = request.POST.get("username", "").strip()
+		password = request.POST.get("password", "")
+		user = authenticate(request, username=username, password=password)
+		if user is not None:
+			login(request, user)
+			return redirect("dashboard_redirect")
+		messages.error(request, "Invalid credentials.")
+		return render(request, "auth/login.html", status=401)
+	return render(request, "auth/login.html")
+
+
 @login_required
 def intern_dashboard(request: HttpRequest) -> HttpResponse:
 	# Ensure the logged-in user has an Intern profile
@@ -56,6 +74,7 @@ def intern_dashboard(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
+@csrf_exempt
 def task_create(request: HttpRequest) -> HttpResponse:
 	try:
 		intern = request.user.intern_profile
@@ -78,6 +97,7 @@ def task_create(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
+@csrf_exempt
 def task_update_status(request: HttpRequest, task_id: int) -> HttpResponse:
 	task = get_object_or_404(Task, id=task_id)
 	try:
@@ -94,6 +114,13 @@ def task_update_status(request: HttpRequest, task_id: int) -> HttpResponse:
 
 	messages.error(request, "You are not allowed to update this task.")
 	return redirect("intern_dashboard")
+
+
+@csrf_exempt
+def logout_view(request: HttpRequest) -> HttpResponse:
+	# Explicit GET-based logout
+	auth_logout(request)
+	return redirect("login")
 
 
 @login_required

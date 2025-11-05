@@ -16,11 +16,13 @@ class InternSignupForm(forms.ModelForm):
 class TaskForm(forms.ModelForm):
 	date = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
 	status = forms.ChoiceField(choices=TaskStatus.choices)
-	staff = forms.ModelChoiceField(queryset=Staff.objects.all(), required=False)
+	staff_name = forms.CharField(required=False, label="Staff Name")
+	staff_identifier = forms.CharField(required=False, label="Staff ID")
+	staff_phone = forms.CharField(required=False, label="Staff Phone")
 
 	class Meta:
 		model = Task
-		fields = ["date", "task_description", "staff", "status"]
+		fields = ["date", "task_description", "staff_name", "staff_identifier", "staff_phone", "status"]
 
 
 class HRFilterForm(forms.Form):

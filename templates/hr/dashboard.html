@@ -32,6 +32,8 @@
 						<th>Intern</th>
 						<th>Department</th>
 						<th>Staff</th>
+						<th>Staff ID</th>
+						<th>Staff Phone</th>
 						<th>Status</th>
 						<th>Task</th>
 						<th>Remarks</th>
@@ -43,7 +45,9 @@
 						<td>{{ t.date }}</td>
 						<td>{{ t.intern.name }}</td>
 						<td>{{ t.intern.department }}</td>
-						<td>{{ t.staff.name if t.staff }}</td>
+						<td>{% if t.staff_name %}{{ t.staff_name }}{% elif t.staff %}{{ t.staff.name }}{% endif %}</td>
+						<td>{{ t.staff_identifier }}</td>
+						<td>{{ t.staff_phone }}</td>
 						<td>
 							<form method="post" action="#" onsubmit="return false;">
 								<span class="badge {% if t.status == 'Resolved' %}bg-success{% else %}bg-warning text-dark{% endif %}">{{ t.status }}</span>

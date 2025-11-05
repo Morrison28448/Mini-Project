@@ -46,7 +46,12 @@ class TaskStatus(models.TextChoices):
 
 class Task(models.Model):
 	intern = models.ForeignKey(Intern, on_delete=models.CASCADE, related_name="tasks")
+	# Optional reference to Staff (kept for admin reporting), but interns will enter details manually
 	staff = models.ForeignKey(Staff, on_delete=models.SET_NULL, null=True, blank=True)
+	# Manually entered staff details by intern
+	staff_name = models.CharField(max_length=120, blank=True)
+	staff_identifier = models.CharField(max_length=64, blank=True)
+	staff_phone = models.CharField(max_length=32, blank=True)
 	task_description = models.TextField()
 	date = models.DateField()
 	status = models.CharField(max_length=16, choices=TaskStatus.choices, default=TaskStatus.PENDING)

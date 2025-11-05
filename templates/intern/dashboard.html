@@ -15,7 +15,6 @@
 			<div class="card-header">Daily Logbook</div>
 			<div class="card-body">
 				<form method="post" action="{% url 'task_create' %}">
-					{% csrf_token %}
 					{{ form.as_p }}
 					<button type="submit" class="btn btn-primary">Submit</button>
 				</form>
@@ -33,6 +32,8 @@
 								<th>Date</th>
 								<th>Task</th>
 								<th>Staff</th>
+								<th>Staff ID</th>
+								<th>Staff Phone</th>
 								<th>Status</th>
 								<th></th>
 							</tr>
@@ -42,7 +43,9 @@
 							<tr>
 								<td>{{ t.date }}</td>
 								<td style="white-space: pre-wrap;">{{ t.task_description }}</td>
-								<td>{{ t.staff.name if t.staff }}</td>
+								<td>{% if t.staff_name %}{{ t.staff_name }}{% elif t.staff %}{{ t.staff.name }}{% endif %}</td>
+								<td>{{ t.staff_identifier }}</td>
+								<td>{{ t.staff_phone }}</td>
 								<td>
 									<span class="badge {% if t.status == 'Resolved' %}bg-success{% else %}bg-warning text-dark{% endif %}">{{ t.status }}</span>
 								</td>

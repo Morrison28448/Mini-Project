@@ -27,7 +27,6 @@ MIDDLEWARE = [
 	"django.middleware.security.SecurityMiddleware",
 	"django.contrib.sessions.middleware.SessionMiddleware",
 	"django.middleware.common.CommonMiddleware",
-	"django.middleware.csrf.CsrfViewMiddleware",
 	"django.contrib.auth.middleware.AuthenticationMiddleware",
 	"django.contrib.messages.middleware.MessageMiddleware",
 	"django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -94,5 +93,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard_redirect"
 LOGOUT_REDIRECT_URL = "login"
+
+# CSRF in development (allow local origins)
+CSRF_TRUSTED_ORIGINS = [
+	"http://localhost:8000",
+	"http://127.0.0.1:8000",
+]
 
 
