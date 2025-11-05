@@ -14,7 +14,7 @@ from django.urls import reverse
 from django.utils.timezone import now
 from django.http import StreamingHttpResponse
 
-from .forms import InternSignupForm, TaskForm, HRFilterForm
+from .forms import TaskForm, HRFilterForm
 from .models import Intern, Task, TaskStatus
 
 
@@ -22,25 +22,19 @@ def is_staff_user(user: User) -> bool:
 	return bool(user and user.is_staff)
 
 
-def intern_signup(request: HttpRequest) -> HttpResponse:
-	if request.method == "POST":
-		form = InternSignupForm(request.POST)
-		if form.is_valid():
-			intern: Intern = form.save(commit=False)
-			# Create a corresponding Django user for auth
-			user = User.objects.create_user(
-				username=intern.email,
-				email=intern.email,
-				password=form.cleaned_data["password"],
-				first_name=intern.name,
-			)
-			intern.user = user
-			intern.save()
-			messages.success(request, "Signup successful. You can now log in.")
-			return redirect("login")
-	else:
-		form = InternSignupForm()
-	return render(request, "auth/signup.html", {"form": form})
+def dashboard_redirect(request: HttpRequest) -> HttpResponse:
+	if not request.user.is_authenticated:
+		return redirect("login")
+	# Staff users go to HR dashboard
+	if request.user.is_staff:
+		return redirect("hr_dashboard")
+	# Interns must have an Intern profile
+	try:
+		_ = request.user.intern_profile
+		return redirect("intern_dashboard")
+	except Intern.DoesNotExist:
+		messages.error(request, "Your account is not configured as an intern. Please contact admin.")
+		return redirect("login")
 
 
 @login_required
@@ -49,8 +43,8 @@ def intern_dashboard(request: HttpRequest) -> HttpResponse:
 	try:
 		intern = request.user.intern_profile
 	except Intern.DoesNotExist:
-		messages.info(request, "Please complete intern signup to use the intern dashboard.")
-		return redirect("signup")
+		messages.error(request, "Your account is not configured as an intern. Please contact admin.")
+		return redirect("login")
 
 	form = TaskForm(initial={"date": date.today()})
 	tasks = intern.tasks.all()
@@ -66,7 +60,8 @@ def task_create(request: HttpRequest) -> HttpResponse:
 	try:
 		intern = request.user.intern_profile
 	except Intern.DoesNotExist:
-		return redirect("signup")
+		messages.error(request, "Your account is not configured as an intern. Please contact admin.")
+		return redirect("login")
 
 	if request.method == "POST":
 		form = TaskForm(request.POST)

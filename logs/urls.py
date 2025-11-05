@@ -7,10 +7,11 @@ from . import views
 urlpatterns = [
 	path("login/", auth_views.LoginView.as_view(template_name="auth/login.html"), name="login"),
 	path("logout/", auth_views.LogoutView.as_view(), name="logout"),
-	path("signup/", views.intern_signup, name="signup"),
+	# No public signup; interns are created by admins
 
 	# Intern
-	path("", views.intern_dashboard, name="intern_dashboard"),
+	path("", views.dashboard_redirect, name="dashboard_redirect"),
+	path("intern/", views.intern_dashboard, name="intern_dashboard"),
 	path("task/create/", views.task_create, name="task_create"),
 	path("task/<int:task_id>/update-status/", views.task_update_status, name="task_update_status"),
 
