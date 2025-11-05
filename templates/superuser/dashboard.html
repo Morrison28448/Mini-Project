@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+	.clickable-stat-card {
+		transition: all 0.3s ease;
+	}
+	.clickable-stat-card:hover {
+		transform: translateY(-5px);
+		box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+		background-color: #f8f9ff;
+	}
+	.clickable-stat-card:hover h2 {
+		transform: scale(1.1);
+		transition: transform 0.3s ease;
+	}
+</style>
+<div class="page-header">
+	<div class="d-flex justify-content-between align-items-center">
+		<div>
+			<h3>
+				<i class="bi bi-people me-2 text-primary"></i>Intern Management Dashboard
+			</h3>
+			<p class="text-muted mb-0">Monitor and analyze all intern activities</p>
+		</div>
+		<div class="d-flex gap-2">
+			<a href="{% url 'staff_compare' %}" class="btn btn-success">
+				<i class="bi bi-bar-chart me-1"></i>Compare Interns
+			</a>
+			<a href="{% url 'logout' %}" class="btn btn-outline-secondary">
+				<i class="bi bi-box-arrow-right me-1"></i>Logout
+			</a>
+		</div>
+	</div>
+</div>
+
+<div class="row g-4 mb-4">
+	<div class="col-md-3 col-sm-6">
+		<div class="card text-center">
+			<div class="card-body">
+				<h2 class="text-primary mb-0">{{ interns|length }}</h2>
+				<p class="text-muted mb-0">Total Interns</p>
+			</div>
+		</div>
+	</div>
+	<div class="col-md-3 col-sm-6">
+		<a href="{% url 'hr_dashboard' %}" class="text-decoration-none">
+			<div class="card text-center clickable-stat-card" style="cursor: pointer;">
+				<div class="card-body">
+					<h2 class="text-success mb-0">{{ total_tasks_all }}</h2>
+					<p class="text-muted mb-0">Total Tasks</p>
+				</div>
+			</div>
+		</a>
+	</div>
+	<div class="col-md-3 col-sm-6">
+		<a href="{% url 'hr_dashboard' %}?status=Pending" class="text-decoration-none">
+			<div class="card text-center clickable-stat-card" style="cursor: pointer;">
+				<div class="card-body">
+					<h2 class="text-warning mb-0">{{ total_pending_all }}</h2>
+					<p class="text-muted mb-0">Pending Tasks</p>
+				</div>
+			</div>
+		</a>
+	</div>
+	<div class="col-md-3 col-sm-6">
+		<a href="{% url 'hr_dashboard' %}?status=Resolved" class="text-decoration-none">
+			<div class="card text-center clickable-stat-card" style="cursor: pointer;">
+				<div class="card-body">
+					<h2 class="text-info mb-0">{{ total_resolved_all }}</h2>
+					<p class="text-muted mb-0">Resolved Tasks</p>
+				</div>
+			</div>
+		</a>
+	</div>
+
+<div class="card mb-4">
+	<div class="card-header">
+		<i class="bi bi-person-plus me-2"></i>Create New Intern
+	</div>
+	<div class="card-body">
+		<form method="post" class="row g-3">
+			{% csrf_token %}
+			<div class="col-md-3">
+				<label class="form-label fw-semibold">{{ create_form.name.label }}</label>
+				{{ create_form.name }}
+			</div>
+			<div class="col-md-3">
+				<label class="form-label fw-semibold">{{ create_form.email.label }}</label>
+				{{ create_form.email }}
+			</div>
+			<div class="col-md-3">
+				<label class="form-label fw-semibold">{{ create_form.department.label }}</label>
+				{{ create_form.department }}
+			</div>
+			<div class="col-md-3">
+				<label class="form-label fw-semibold">{{ create_form.password.label }}</label>
+				{{ create_form.password }}
+			</div>
+			<div class="col-12 d-flex justify-content-end">
+				<button class="btn btn-primary" type="submit"><i class="bi bi-check-circle me-1"></i>Create</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<div class="card">
+	<div class="card-header">
+		<i class="bi bi-list-ul me-2"></i>All Interns
+	</div>
+	<div class="card-body p-0">
+		<div class="table-responsive">
+			<table class="table table-hover mb-0">
+				<thead>
+					<tr>
+						<th><i class="bi bi-person me-1"></i>Name</th>
+						<th><i class="bi bi-envelope me-1"></i>Email</th>
+						<th><i class="bi bi-building me-1"></i>Department</th>
+						<th><i class="bi bi-list-task me-1"></i>Total Tasks</th>
+						<th><i class="bi bi-clock me-1"></i>Pending</th>
+						<th><i class="bi bi-check-circle me-1"></i>Resolved</th>
+						<th><i class="bi bi-calendar-event me-1"></i>Latest Activity</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for intern in interns %}
+					<tr>
+						<td><strong>{{ intern.name }}</strong></td>
+						<td>{{ intern.email }}</td>
+						<td><span class="badge bg-info">{{ intern.department }}</span></td>
+						<td>
+							<span class="badge bg-primary">{{ intern.total_tasks }}</span>
+						</td>
+						<td>
+							<span class="badge bg-warning text-dark">{{ intern.pending_tasks }}</span>
+						</td>
+						<td>
+							<span class="badge bg-success">{{ intern.resolved_tasks }}</span>
+						</td>
+						<td>
+							{% if intern.latest_task_date %}
+								{{ intern.latest_task_date|date:"M d, Y" }}
+							{% else %}
+								<span class="text-muted">No tasks</span>
+							{% endif %}
+						</td>
+						<td class="text-end">
+							<a href="{% url 'staff_intern_detail' intern.id %}" class="btn btn-sm btn-outline-primary">
+								<i class="bi bi-eye me-1"></i>View Details
+							</a>
+						</td>
+					</tr>
+					{% empty %}
+					<tr>
+						<td colspan="8" class="empty-state">
+							<i class="bi bi-inbox"></i>
+							<p class="mb-0">No interns found.</p>
+						</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+{% endblock %}
+

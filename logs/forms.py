@@ -33,3 +33,28 @@ class HRFilterForm(forms.Form):
 	intern_name = forms.CharField(required=False)
 
 
+class PasswordResetForm(forms.Form):
+	auto_generate = forms.BooleanField(
+		required=False,
+		label="Auto-generate password",
+		help_text="Check this to automatically generate a secure password, or leave unchecked to enter your own."
+	)
+	custom_password = forms.CharField(
+		required=False,
+		widget=forms.PasswordInput(attrs={"placeholder": "Enter custom password", "class": "form-control"}),
+		label="Custom Password",
+		min_length=8,
+		help_text="Enter at least 8 characters. Leave empty if auto-generating."
+	)
+	
+	def clean(self):
+		cleaned_data = super().clean()
+		auto_generate = cleaned_data.get("auto_generate")
+		custom_password = cleaned_data.get("custom_password")
+		
+		if not auto_generate and not custom_password:
+			raise forms.ValidationError("Either check 'Auto-generate password' or enter a custom password.")
+		
+		return cleaned_data
+
+

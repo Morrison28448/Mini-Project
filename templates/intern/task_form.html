@@ -1,14 +1,60 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="row justify-content-center">
-	<div class="col-md-6">
+	<div class="col-md-8 col-lg-6">
 		<div class="card">
-			<div class="card-header">New Task</div>
+			<div class="card-header">
+				<i class="bi bi-journal-plus me-2"></i>Create New Task
+			</div>
 			<div class="card-body">
 				<form method="post">
-					{{ form.as_p }}
-					<button type="submit" class="btn btn-primary">Save</button>
-					<a href="{% url 'intern_dashboard' %}" class="btn btn-secondary">Cancel</a>
+					{% csrf_token %}
+					<div class="mb-3">
+						<label class="form-label fw-semibold">
+							<i class="bi bi-calendar3 me-1"></i>{{ form.date.label }}
+						</label>
+						{{ form.date }}
+					</div>
+					<div class="mb-3">
+						<label class="form-label fw-semibold">
+							<i class="bi bi-list-task me-1"></i>{{ form.task_description.label }}
+						</label>
+						{{ form.task_description }}
+					</div>
+					<div class="row">
+						<div class="col-md-6 mb-3">
+							<label class="form-label fw-semibold">
+								<i class="bi bi-person me-1"></i>{{ form.staff_name.label }}
+							</label>
+							{{ form.staff_name }}
+						</div>
+						<div class="col-md-6 mb-3">
+							<label class="form-label fw-semibold">
+								<i class="bi bi-id-card me-1"></i>{{ form.staff_identifier.label }}
+							</label>
+							{{ form.staff_identifier }}
+						</div>
+					</div>
+					<div class="mb-3">
+						<label class="form-label fw-semibold">
+							<i class="bi bi-telephone me-1"></i>{{ form.staff_phone.label }}
+						</label>
+						{{ form.staff_phone }}
+					</div>
+					<div class="mb-4">
+						<label class="form-label fw-semibold">
+							<i class="bi bi-flag me-1"></i>{{ form.status.label }}
+						</label>
+						{{ form.status }}
+					</div>
+					<div class="d-flex gap-2">
+						<button type="submit" class="btn btn-primary flex-fill">
+							<i class="bi bi-check-circle me-2"></i>Save Task
+						</button>
+						<a href="{% url 'intern_dashboard' %}" class="btn btn-outline-secondary">
+							<i class="bi bi-x-circle me-1"></i>Cancel
+						</a>
+					</div>
 				</form>
 			</div>
 		</div>

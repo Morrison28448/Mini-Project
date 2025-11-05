@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+	<div class="d-flex justify-content-between align-items-center">
+		<div>
+			<h3>
+				<i class="bi bi-bar-chart me-2 text-primary"></i>Compare Intern Performance
+			</h3>
+			<p class="text-muted mb-0">Analyze and compare intern productivity</p>
+		</div>
+		<div class="d-flex gap-2">
+			<a href="{% url 'staff_dashboard' %}" class="btn btn-outline-secondary">
+				<i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+			</a>
+		</div>
+	</div>
+</div>
+
+<div class="card mb-4">
+	<div class="card-header">
+		<i class="bi bi-funnel me-2"></i>Select Interns to Compare
+	</div>
+	<div class="card-body">
+		<form method="get" id="compareForm">
+			<div class="row">
+				{% for intern in all_interns %}
+				<div class="col-md-3 mb-2">
+					<div class="form-check">
+						<input class="form-check-input" type="checkbox" name="interns" value="{{ intern.id }}" id="intern_{{ intern.id }}" 
+							{% if intern.id in selected_ids %}checked{% endif %}>
+						<label class="form-check-label" for="intern_{{ intern.id }}">
+							<strong>{{ intern.name }}</strong> <span class="text-muted">({{ intern.department }})</span>
+						</label>
+					</div>
+				</div>
+				{% endfor %}
+			</div>
+			<div class="mt-3">
+				<button type="submit" class="btn btn-primary">
+					<i class="bi bi-search me-1"></i>Compare Selected
+				</button>
+				<button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('compareForm').reset(); document.getElementById('compareForm').submit();">
+					<i class="bi bi-x-circle me-1"></i>Clear
+				</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+{% if comparison_data %}
+<div class="row g-4 mb-4">
+	{% for data in comparison_data %}
+	<div class="col-md-6">
+		<div class="card">
+			<div class="card-header">
+				<i class="bi bi-person-circle me-2"></i>{{ data.intern.name }}
+				<span class="badge bg-info ms-2">{{ data.intern.department }}</span>
+			</div>
+			<div class="card-body">
+				<div class="row text-center">
+					<div class="col-6 mb-3">
+						<h4 class="text-primary mb-0">{{ data.total }}</h4>
+						<small class="text-muted">Total Tasks</small>
+					</div>
+					<div class="col-6 mb-3">
+						<h4 class="text-success mb-0">{{ data.resolved }}</h4>
+						<small class="text-muted">Resolved</small>
+					</div>
+					<div class="col-6">
+						<h4 class="text-warning mb-0">{{ data.pending }}</h4>
+						<small class="text-muted">Pending</small>
+					</div>
+					<div class="col-6">
+						<h4 class="text-info mb-0">
+							{% if data.total > 0 %}
+								{% widthratio data.resolved data.total 100 %}%
+							{% else %}
+								0%
+							{% endif %}
+						</h4>
+						<small class="text-muted">Completion</small>
+					</div>
+				</div>
+				<hr>
+				<div class="d-flex justify-content-between">
+					<div>
+						<small class="text-muted">First Task:</small><br>
+						<strong>{{ data.first|date:"M d, Y"|default:"N/A" }}</strong>
+					</div>
+					<div class="text-end">
+						<small class="text-muted">Latest Task:</small><br>
+						<strong>{{ data.latest|date:"M d, Y"|default:"N/A" }}</strong>
+					</div>
+				</div>
+				<div class="mt-3">
+					<a href="{% url 'superuser_intern_detail' data.intern.id %}" class="btn btn-sm btn-outline-primary w-100">
+						<i class="bi bi-eye me-1"></i>View Full Details
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	{% endfor %}
+</div>
+
+{% if comparison_data|length > 1 %}
+<div class="card">
+	<div class="card-header">
+		<i class="bi bi-bar-chart-line me-2"></i>Performance Comparison Chart
+	</div>
+	<div class="card-body">
+		<canvas id="comparisonChart" height="100"></canvas>
+	</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const ctx = document.getElementById('comparisonChart').getContext('2d');
+const internNames = [{% for data in comparison_data %}'{{ data.intern.name }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+const totalData = [{% for data in comparison_data %}{{ data.total }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+const resolvedData = [{% for data in comparison_data %}{{ data.resolved }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+const pendingData = [{% for data in comparison_data %}{{ data.pending }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+new Chart(ctx, {
+	type: 'bar',
+	data: {
+		labels: internNames,
+		datasets: [
+			{
+				label: 'Total Tasks',
+				data: totalData,
+				backgroundColor: 'rgba(102, 126, 234, 0.6)',
+				borderColor: '#667eea',
+				borderWidth: 2
+			},
+			{
+				label: 'Resolved',
+				data: resolvedData,
+				backgroundColor: 'rgba(40, 167, 69, 0.6)',
+				borderColor: '#28a745',
+				borderWidth: 2
+			},
+			{
+				label: 'Pending',
+				data: pendingData,
+				backgroundColor: 'rgba(255, 193, 7, 0.6)',
+				borderColor: '#ffc107',
+				borderWidth: 2
+			}
+		]
+	},
+	options: {
+		responsive: true,
+		scales: {
+			y: { beginAtZero: true, ticks: { precision: 0 } }
+		}
+	}
+});
+</script>
+{% endif %}
+
+{% else %}
+<div class="card">
+	<div class="card-body text-center empty-state">
+		<i class="bi bi-bar-chart"></i>
+		<p class="mb-0">Select interns from above to compare their performance</p>
+	</div>
+</div>
+{% endif %}
+{% endblock %}
+

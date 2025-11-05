@@ -3,12 +3,12 @@
 <div class="row justify-content-center align-items-center" style="min-height: 70vh;">
 	<div class="col-md-5 col-lg-4">
 		<div class="card">
-			<div class="card-header text-center">
-				<i class="bi bi-box-arrow-in-right me-2"></i>Welcome Back
+			<div class="card-header text-center" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+				<i class="bi bi-briefcase-fill me-2"></i>Staff Login
 			</div>
 			<div class="card-body">
 				<div class="text-center mb-4">
-					<i class="bi bi-person-circle" style="font-size: 4rem; color: #667eea;"></i>
+					<i class="bi bi-person-badge" style="font-size: 4rem; color: #4facfe;"></i>
 				</div>
 				<form method="post">
 					{% csrf_token %}
@@ -26,8 +26,11 @@
 					</div>
 					<div class="d-grid">
 						<button class="btn btn-primary btn-lg" type="submit">
-							<i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+							<i class="bi bi-box-arrow-in-right me-2"></i>Sign In as Staff
 						</button>
+					</div>
+					<div class="text-center mt-3">
+						<a href="{% url 'login' %}" class="text-muted text-decoration-none">Regular user login</a>
 					</div>
 				</form>
 			</div>
