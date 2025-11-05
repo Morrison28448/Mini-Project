@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+	<div class="col-md-7">
+		<div class="card">
+			<div class="card-header">Intern Signup</div>
+			<div class="card-body">
+				<form method="post">
+					{% csrf_token %}
+					{{ form.as_p }}
+					<button class="btn btn-success" type="submit">Create Account</button>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+
