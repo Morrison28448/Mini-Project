@@ -34,6 +34,15 @@
 			letter-spacing: 0.5px;
 		}
 
+		/* Back button next to brand - hidden by default and shown on hover */
+		.navbar-brand-wrapper .back-btn {
+			display: none;
+			opacity: 0.95;
+		}
+		.navbar-brand-wrapper:hover .back-btn {
+			display: inline-block;
+		}
+
 		.navbar .btn {
 			border-radius: 25px;
 			padding: 0.5rem 1.5rem;
@@ -186,9 +195,17 @@
 <body>
 	<nav class="navbar navbar-expand-lg navbar-dark">
 		<div class="container-fluid">
-			<a class="navbar-brand" href="/">
-				<i class="bi bi-journal-text me-2"></i>Intern Logbook
-			</a>
+			<div class="d-flex align-items-center navbar-brand-wrapper">
+				<a class="navbar-brand" href="{% url 'dashboard_redirect' %}">
+					<i class="bi bi-journal-text me-2"></i>Intern Logbook
+				</a>
+				{% comment %} Hover-back button: shown when hovering over the brand area, hidden on login screens {% endcomment %}
+				{% if request.resolver_match and request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'staff_login' and request.resolver_match.url_name != 'login_home' %}
+					<button type="button" class="btn btn-light btn-sm ms-2 back-btn" title="Go back" onclick="history.back(); return false;">
+						<i class="bi bi-arrow-left"></i>
+					</button>
+				{% endif %}
+			</div>
 			<div class="d-flex align-items-center">
 				{% if user.is_authenticated %}
 					<span class="text-white me-3">

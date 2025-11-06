@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+	<h3>Submission Detail</h3>
+	<p class="text-muted">Review and add notes</p>
+</div>
+<div class="card">
+	<div class="card-body">
+		<h5>{{ submission.assignment.title }} — {{ submission.intern.name }}</h5>
+		<p class="text-muted">Submitted: {{ submission.submitted_at|date:"Y-m-d H:i" }}</p>
+		<hr>
+		<div>
+			<h6>Text</h6>
+			<pre style="white-space: pre-wrap;">{{ submission.text|default:"(no text)" }}</pre>
+		</div>
+		<div class="mt-3">
+			<h6>File</h6>
+			{% if submission.upload %}
+			<a href="{{ submission.upload.url }}" target="_blank">Download uploaded file</a>
+			{% else %}
+			<p class="text-muted">No file uploaded.</p>
+			{% endif %}
+		</div>
+		<hr>
+		<form method="post">
+			{% csrf_token %}
+			<div class="mb-3">
+				<label class="form-label">Review Notes</label>
+				<textarea name="review_notes" class="form-control" rows="4">{{ submission.review_notes }}</textarea>
+			</div>
+			<div class="d-flex gap-2">
+				<button name="action" value="mark_reviewed" class="btn btn-success" type="submit">Mark Reviewed</button>
+				<button name="action" value="unmark_reviewed" class="btn btn-outline-secondary" type="submit">Unmark Reviewed</button>
+				<a href="{% url 'staff_submissions' %}" class="btn btn-link">Back</a>
+			</div>
+		</form>
+	</div>
+</div>
+{% endblock %}

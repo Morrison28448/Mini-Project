@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+  <h3>All Users</h3>
+  <p class="text-muted">List of all Django users. Click Edit to update account details.</p>
+</div>
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Username / Email</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Active</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>{{ u.username }}<br><small class="text-muted">{{ u.email }}</small></td>
+            <td>{{ u.get_full_name }}</td>
+            <td>
+              {% if u.is_superuser %}Superuser{% elif u.is_staff %}Staff{% else %}Intern{% endif %}
+            </td>
+            <td>{% if u.is_active %}Yes{% else %}No{% endif %}</td>
+            <td class="text-end">
+              <a href="{% url 'superuser_user_edit' u.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+	<h3>Create Staff Account</h3>
+	<p class="text-muted">Create a new staff user and optionally grant admin rights</p>
+</div>
+<div class="card">
+	<div class="card-body">
+		<form method="post">
+			{% csrf_token %}
+			<div class="row g-3">
+				<div class="col-md-6">
+					<label class="form-label">Name</label>
+					{{ staff_form.name }}
+				</div>
+				<div class="col-md-6">
+					<label class="form-label">Email</label>
+					{{ staff_form.email }}
+				</div>
+				<div class="col-md-6">
+					<label class="form-label">Password</label>
+					{{ staff_form.password }}
+				</div>
+				<div class="col-md-6">
+					<label class="form-label">Department</label>
+					{{ staff_form.department }}
+				</div>
+				<div class="col-md-6">
+					<label class="form-label">Position</label>
+					{{ staff_form.position }}
+				</div>
+				<div class="col-md-6 form-check">
+					{{ staff_form.is_superuser }}
+					<label class="form-check-label">Grant admin rights (superuser)</label>
+				</div>
+			</div>
+			<div class="mt-3 d-flex gap-2">
+				<button name="create_staff" class="btn btn-primary" type="submit">Create Staff</button>
+				<a href="{% url 'staff_dashboard' %}" class="btn btn-link">Cancel</a>
+			</div>
+		</form>
+	</div>
+</div>
+{% endblock %}

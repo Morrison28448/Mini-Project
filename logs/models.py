@@ -66,3 +66,41 @@ class Task(models.Model):
 		return f"{self.intern.name} - {self.date} - {self.status}"
 
 
+class Assignment(models.Model):
+	title = models.CharField(max_length=200)
+	description = models.TextField()
+	# departments stored as comma-separated values matching Department choices
+	departments = models.CharField(max_length=200)
+	posted_by = models.ForeignKey(
+		settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+	)
+	due_date = models.DateField(null=True, blank=True)
+	allow_file_upload = models.BooleanField(default=True)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ["-created_at"]
+
+	def __str__(self) -> str:
+		return f"Assignment: {self.title}"
+
+	def get_departments_list(self):
+		return [d.strip() for d in (self.departments or "").split(",") if d.strip()]
+
+
+class Submission(models.Model):
+	assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name="submissions")
+	intern = models.ForeignKey(Intern, on_delete=models.CASCADE, related_name="submissions")
+	text = models.TextField(blank=True)
+	upload = models.FileField(upload_to="submissions/", null=True, blank=True)
+	submitted_at = models.DateTimeField(auto_now_add=True)
+	reviewed = models.BooleanField(default=False)
+	review_notes = models.TextField(blank=True)
+
+	class Meta:
+		ordering = ["-submitted_at"]
+
+	def __str__(self) -> str:
+		return f"Submission by {self.intern.name} for {self.assignment.title}"
+
+

@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+	<div class="d-flex justify-content-between align-items-center">
+		<div>
+			<h3>
+				<i class="bi bi-card-text me-2 text-primary"></i>Manage Assignments
+			</h3>
+			<p class="text-muted mb-0">Create assignments for one or more departments</p>
+		</div>
+		<div class="d-flex gap-2">
+			<a href="{% url 'staff_dashboard' %}" class="btn btn-outline-secondary">
+				<i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+			</a>
+		</div>
+	</div>
+</div>
+
+<div class="row g-4">
+	<div class="col-md-5">
+		<div class="card">
+			<div class="card-header">Post Assignment</div>
+			<div class="card-body">
+				<form method="post">
+					{% csrf_token %}
+					<div class="mb-3">
+						<label class="form-label">Title</label>
+						{{ form.title }}
+					</div>
+					<div class="mb-3">
+						<label class="form-label">Description</label>
+						{{ form.description }}
+					</div>
+					<div class="mb-3">
+						<label class="form-label">Departments</label>
+						{{ form.departments }}
+					</div>
+					<div class="mb-3">
+						<label class="form-label">Due Date</label>
+						{{ form.due_date }}
+					</div>
+					<div class="mb-3 form-check">
+						{{ form.allow_file_upload }}
+						<label class="form-check-label">Allow file upload</label>
+					</div>
+					<div class="d-grid">
+						<button class="btn btn-primary" type="submit">Post Assignment</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+	<div class="col-md-7">
+		<div class="card">
+			<div class="card-header">Recent Assignments</div>
+			<div class="card-body">
+				<ul class="list-group">
+					{% for a in assignments %}
+					<li class="list-group-item">
+						<div class="d-flex justify-content-between">
+							<div>
+								<strong>{{ a.title }}</strong>
+								<div class="text-muted small">Departments: {{ a.departments }}</div>
+								<div class="text-muted small">Posted: {{ a.created_at|date:"Y-m-d" }}{% if a.due_date %} • Due: {{ a.due_date }}{% endif %}</div>
+							</div>
+							<div>
+								<a href="{% url 'staff_assignment_edit' a.id %}" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
+								<form method="post" action="{% url 'staff_assignment_delete' a.id %}" style="display:inline">
+									{% csrf_token %}
+									<button class="btn btn-sm btn-outline-danger" type="submit" onclick="return confirm('Delete this assignment?')">Delete</button>
+								</form>
+								<a href="{% url 'staff_submissions' %}?assignment_id={{ a.id }}" class="btn btn-sm btn-primary ms-2">View Submissions</a>
+							</div>
+						</div>
+					</li>
+					{% empty %}
+					<li class="list-group-item empty-state">No assignments yet.</li>
+					{% endfor %}
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}

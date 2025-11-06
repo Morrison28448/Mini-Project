@@ -19,7 +19,12 @@ from django.http import StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from .forms import TaskForm, HRFilterForm, InternSignupForm, PasswordResetForm
-from .models import Intern, Task, TaskStatus
+from .models import Intern, Task, TaskStatus, Staff
+from .forms import AssignmentForm, SubmissionForm, StaffSignupForm, SuperuserUserForm, InternProfileForm, StaffProfileForm
+from .models import Assignment, Submission
+from django.views.decorators.http import require_POST
+from .forms import StaffSignupForm
+from django.contrib.auth.models import User
 
 
 def is_staff_user(user: User) -> bool:
@@ -80,10 +85,13 @@ def intern_dashboard(request: HttpRequest) -> HttpResponse:
 
 	form = TaskForm(initial={"date": date.today()})
 	tasks = intern.tasks.all()
+
+	# Assignments for the intern's department
+	assignments = Assignment.objects.filter(departments__icontains=intern.department).order_by("-created_at")
 	return render(
 		request,
 		"intern/dashboard.html",
-		{"form": form, "tasks": tasks, "today": date.today()},
+		{"form": form, "tasks": tasks, "today": date.today(), "assignments": assignments},
 	)
 
 
@@ -224,8 +232,9 @@ def staff_login(request: HttpRequest) -> HttpResponse:
 @login_required
 @user_passes_test(is_staff_user)
 def staff_dashboard(request: HttpRequest) -> HttpResponse:
+	# Intern create form handling
 	create_form = InternSignupForm(request.POST or None)
-	if request.method == "POST" and create_form.is_valid():
+	if request.method == "POST" and "create_intern" in request.POST and create_form.is_valid():
 		name = create_form.cleaned_data["name"]
 		email = create_form.cleaned_data["email"]
 		password = create_form.cleaned_data["password"]
@@ -242,6 +251,27 @@ def staff_dashboard(request: HttpRequest) -> HttpResponse:
 		Intern.objects.create(name=name, email=email, password=password, department=department, user=user)
 		messages.success(request, "Intern account created.")
 		return redirect("staff_dashboard")
+
+	# Staff create form handling (separate submit button)
+	staff_form = StaffSignupForm(request.POST or None)
+	if request.method == "POST" and "create_staff" in request.POST and staff_form.is_valid():
+		sname = staff_form.cleaned_data["name"]
+		semail = staff_form.cleaned_data["email"]
+		spassword = staff_form.cleaned_data["password"]
+		sdepartment = staff_form.cleaned_data["department"]
+		sposition = staff_form.cleaned_data["position"]
+		is_super = staff_form.cleaned_data.get("is_superuser")
+		# create auth user with staff/admin flags
+		suser = User.objects.create_user(username=semail, email=semail, password=spassword)
+		suser.is_staff = True
+		if is_super:
+			suser.is_superuser = True
+		suser.save(update_fields=["is_staff", "is_superuser"])
+		# create Staff model entry
+		Staff.objects.create(name=sname, department=sdepartment, position=sposition)
+		messages.success(request, "Staff account created.")
+		return redirect("staff_dashboard")
+
 	interns = Intern.objects.select_related("user").annotate(
 		total_tasks=Count("tasks"),
 		pending_tasks=Count("tasks", filter=Q(tasks__status=TaskStatus.PENDING)),
@@ -261,6 +291,90 @@ def staff_dashboard(request: HttpRequest) -> HttpResponse:
 		"total_resolved_all": total_resolved_all,
 		"create_form": create_form,
 	})
+
+
+@login_required
+@user_passes_test(is_staff_user)
+def staff_create_staff(request: HttpRequest) -> HttpResponse:
+	form = StaffSignupForm(request.POST or None)
+	if request.method == "POST" and form.is_valid():
+		sname = form.cleaned_data["name"]
+		semail = form.cleaned_data["email"]
+		spassword = form.cleaned_data["password"]
+		sdepartment = form.cleaned_data["department"]
+		sposition = form.cleaned_data["position"]
+		is_super = form.cleaned_data.get("is_superuser")
+		# create auth user with staff/admin flags
+		suser = User.objects.create_user(username=semail, email=semail, password=spassword)
+		suser.is_staff = True
+		if is_super:
+			suser.is_superuser = True
+		suser.save()
+		# create Staff model entry and optionally link to the user in future
+		Staff.objects.create(name=sname, department=sdepartment, position=sposition)
+		messages.success(request, "Staff account created.")
+		return redirect("staff_dashboard")
+
+	return render(request, "superuser/create_staff.html", {"staff_form": form})
+
+
+# Superuser: list all users
+@login_required
+@user_passes_test(is_superuser)
+def superuser_users(request: HttpRequest) -> HttpResponse:
+	users = User.objects.all().order_by("username")
+	return render(request, "superuser/users_list.html", {"users": users})
+
+
+# Superuser: edit user and linked profile
+@login_required
+@user_passes_test(is_superuser)
+def superuser_user_edit(request: HttpRequest, user_id: int) -> HttpResponse:
+	user_obj = get_object_or_404(User, id=user_id)
+	intern = None
+	staff_obj = None
+	try:
+		intern = user_obj.intern_profile
+	except Intern.DoesNotExist:
+		intern = None
+	# find Staff by email or name - Staff isn't linked to User in current model
+	staff_qs = Staff.objects.filter(name=user_obj.get_full_name())
+	if not staff_qs.exists():
+		staff_qs = Staff.objects.filter(department__iexact="")  # empty queryset
+	staff_obj = staff_qs.first() if staff_qs.exists() else None
+
+	if request.method == "POST":
+		user_form = SuperuserUserForm(request.POST, instance=user_obj)
+		intern_form = InternProfileForm(request.POST, instance=intern) if intern else None
+		staff_form = StaffProfileForm(request.POST, instance=staff_obj) if staff_obj else None
+
+		if "save_profile" in request.POST and intern_form and intern_form.is_valid():
+			intern_form.save()
+			messages.success(request, "Intern profile updated.")
+			return redirect("superuser_user_edit", user_id=user_obj.id)
+		if "save_profile" in request.POST and staff_form and staff_form.is_valid():
+			staff_form.save()
+			messages.success(request, "Staff profile updated.")
+			return redirect("superuser_user_edit", user_id=user_obj.id)
+
+		if user_form.is_valid():
+			u = user_form.save(commit=False)
+			# ensure username stays in sync with email
+			u.username = u.email
+			new_pw = user_form.cleaned_data.get("new_password")
+			if new_pw:
+				u.set_password(new_pw)
+			u.save()
+			messages.success(request, "User updated.")
+			return redirect("superuser_users")
+		else:
+			messages.error(request, "Please correct the errors below.")
+	else:
+		user_form = SuperuserUserForm(instance=user_obj)
+		intern_form = InternProfileForm(instance=intern) if intern else None
+		staff_form = StaffProfileForm(instance=staff_obj) if staff_obj else None
+
+	return render(request, "superuser/user_edit.html", {"user_form": user_form, "intern_form": intern_form, "staff_form": staff_form, "user_obj": user_obj})
 
 
 # Individual intern detail view (staff)
@@ -383,13 +497,16 @@ def staff_compare(request: HttpRequest) -> HttpResponse:
 	comparison_data = []
 	for intern in interns:
 		tasks = intern.tasks.all()
+		# Use deterministic ordering when picking first/latest task dates
+		latest_task = tasks.order_by("-date").first()
+		first_task = tasks.order_by("date").first()
 		comparison_data.append({
 			"intern": intern,
 			"total": tasks.count(),
 			"pending": tasks.filter(status=TaskStatus.PENDING).count(),
 			"resolved": tasks.filter(status=TaskStatus.RESOLVED).count(),
-			"latest": tasks.first().date if tasks.exists() else None,
-			"first": tasks.last().date if tasks.exists() else None,
+			"latest": latest_task.date if latest_task else None,
+			"first": first_task.date if first_task else None,
 		})
 	
 	all_interns = Intern.objects.all().order_by("name")
@@ -399,6 +516,117 @@ def staff_compare(request: HttpRequest) -> HttpResponse:
 		"all_interns": all_interns,
 		"selected_ids": [int(i) for i in intern_ids] if intern_ids else [],
 	})
+
+
+# Staff: view and create assignments
+@login_required
+@user_passes_test(is_staff_user)
+def staff_assignments(request: HttpRequest) -> HttpResponse:
+	staff_form = None
+
+# Intern submits an assignment result
+@login_required
+def assignment_submit(request: HttpRequest, assignment_id: int) -> HttpResponse:
+	assignment = get_object_or_404(Assignment, id=assignment_id)
+	try:
+		intern = request.user.intern_profile
+	except Intern.DoesNotExist:
+		messages.error(request, "Your account is not configured as an intern. Please contact admin.")
+		return redirect("login")
+
+	# ensure this assignment is for the intern's department
+	if intern.department not in assignment.get_departments_list():
+		messages.error(request, "You are not eligible to submit for this assignment.")
+		return redirect("intern_dashboard")
+
+	if request.method == "POST":
+		form = SubmissionForm(request.POST, request.FILES)
+		if form.is_valid():
+			sub = form.save(commit=False)
+			sub.assignment = assignment
+			sub.intern = intern
+			sub.save()
+			messages.success(request, "Submission received.")
+			return redirect("intern_dashboard")
+		else:
+			messages.error(request, "Please correct the errors below.")
+	else:
+		form = SubmissionForm()
+
+	return render(request, "intern/assignment_submit.html", {"form": form, "assignment": assignment})
+
+
+# Edit assignment (staff only)
+@login_required
+@user_passes_test(is_staff_user)
+def staff_assignment_edit(request: HttpRequest, assignment_id: int) -> HttpResponse:
+	assignment = get_object_or_404(Assignment, id=assignment_id)
+	if request.method == "POST":
+		form = AssignmentForm(request.POST, instance=assignment)
+		if form.is_valid():
+			a = form.save(commit=False)
+			a.departments = form.cleaned_data.get("departments")
+			a.save()
+			messages.success(request, "Assignment updated.")
+			return redirect("staff_assignments")
+		else:
+			messages.error(request, "Please correct the errors below.")
+	else:
+		# convert departments CSV to list for form initial
+		initial = {"departments": assignment.get_departments_list(), "due_date": assignment.due_date}
+		form = AssignmentForm(instance=assignment, initial=initial)
+	return render(request, "superuser/assignments.html", {"form": form, "assignments": [assignment], "editing": True})
+
+
+# Delete assignment (staff only)
+@login_required
+@user_passes_test(is_staff_user)
+def staff_assignment_delete(request: HttpRequest, assignment_id: int) -> HttpResponse:
+	assignment = get_object_or_404(Assignment, id=assignment_id)
+	if request.method == "POST":
+		assignment.delete()
+		messages.success(request, "Assignment deleted.")
+		return redirect("staff_assignments")
+	return render(request, "superuser/assignment_confirm_delete.html", {"assignment": assignment})
+
+
+# Staff: view all submissions or submissions for an assignment
+@login_required
+@user_passes_test(is_staff_user)
+def staff_submissions(request: HttpRequest) -> HttpResponse:
+	assignment_id = request.GET.get("assignment_id")
+	qs = Submission.objects.select_related("intern", "assignment").all()
+	if assignment_id:
+		qs = qs.filter(assignment_id=assignment_id)
+	submissions = qs.order_by("-submitted_at")
+	assignments = Assignment.objects.all()
+	try:
+		selected_assignment = int(assignment_id) if assignment_id else None
+	except (TypeError, ValueError):
+		selected_assignment = None
+	return render(request, "superuser/submissions.html", {"submissions": submissions, "assignments": assignments, "selected_assignment": selected_assignment})
+
+
+# Staff: view single submission and mark reviewed
+@login_required
+@user_passes_test(is_staff_user)
+def staff_submission_detail(request: HttpRequest, submission_id: int) -> HttpResponse:
+	sub = get_object_or_404(Submission, id=submission_id)
+	if request.method == "POST":
+		# toggle reviewed and save notes
+		action = request.POST.get("action")
+		if action == "mark_reviewed":
+			sub.reviewed = True
+			sub.review_notes = request.POST.get("review_notes", "")
+			sub.save()
+			messages.success(request, "Submission marked as reviewed.")
+		elif action == "unmark_reviewed":
+			sub.reviewed = False
+			sub.review_notes = request.POST.get("review_notes", "")
+			sub.save()
+			messages.success(request, "Submission unmarked as reviewed.")
+		return redirect("staff_submission_detail", submission_id=sub.id)
+	return render(request, "superuser/submission_detail.html", {"submission": sub})
 
 
 

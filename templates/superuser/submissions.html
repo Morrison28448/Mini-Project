@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+	<h3>Submitted Assignments</h3>
+	<p class="text-muted">Review intern submissions</p>
+</div>
+<div class="card mb-3">
+	<div class="card-body">
+		<form method="get" class="row g-2">
+			<div class="col-auto">
+				<select name="assignment_id" class="form-select">
+					<option value="">All assignments</option>
+					{% for a in assignments %}
+					<option value="{{ a.id }}" {% if selected_assignment == a.id %}selected{% endif %}>{{ a.title }}</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="col-auto">
+				<button class="btn btn-primary" type="submit">Filter</button>
+			</div>
+		</form>
+	</div>
+</div>
+<div class="card">
+	<div class="card-body p-0">
+		<div class="table-responsive">
+			<table class="table mb-0">
+				<thead>
+					<tr>
+						<th>Assignment</th>
+						<th>Intern</th>
+						<th>Submitted</th>
+						<th>Text</th>
+						<th>File</th>
+						<th>Reviewed</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for s in submissions %}
+					<tr>
+						<td>{{ s.assignment.title }}</td>
+						<td>{{ s.intern.name }}</td>
+						<td>{{ s.submitted_at|date:"Y-m-d H:i" }}</td>
+						<td style="max-width:250px; white-space:pre-wrap;">{{ s.text|truncatewords:20 }}</td>
+						<td>
+							{% if s.upload %}
+							<a href="{{ s.upload.url }}" target="_blank">Download</a>
+							{% else %}-{% endif %}
+						</td>
+						<td>{% if s.reviewed %}Yes{% else %}No{% endif %}</td>
+						<td class="text-end">
+							<a href="{% url 'staff_submission_detail' s.id %}" class="btn btn-sm btn-outline-primary">View</a>
+						</td>
+					</tr>
+					{% empty %}
+					<tr>
+						<td colspan="7" class="empty-state text-center">No submissions found.</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+{% endblock %}
